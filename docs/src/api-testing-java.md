@@ -35,65 +35,34 @@ GitHub API requires authorization, so we'll configure the token once for all tes
 package org.example;
 
 import com.microsoft.playwright.APIRequest;
-import com.microsoft.playwright.APIRequestContext;
-import com.microsoft.playwright.Playwright;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.TestInstance;
-
+import com.microsoft.playwright.junit.Options;
+import com.microsoft.playwright.junit.OptionsFactory;
+import com.microsoft.playwright.junit.UsePlaywright;
 import java.util.HashMap;
 import java.util.Map;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@UsePlaywright(TestGitHubAPI.CustomOptions.class)
 public class TestGitHubAPI {
-  private static final String API_TOKEN = System.getenv("GITHUB_API_TOKEN");
+    private static final String API_TOKEN = System.getenv("GITHUB_API_TOKEN");
 
-  private Playwright playwright;
-  private APIRequestContext request;
+  public static class CustomOptions implements OptionsFactory {
+    @Override
+    public Options getOptions() {
+      Map<String, String> headers = new HashMap<>();
+      // We set this header per GitHub guidelines.
+      headers.put("Accept", "application/vnd.github.v3+json");
+      // Add authorization token to all requests.
+      // Assuming personal access token available in the environment.
+      headers.put("Authorization", "token " + API_TOKEN);
 
-  void createPlaywright() {
-    playwright = Playwright.create();
-  }
-
-  void createAPIRequestContext() {
-    Map<String, String> headers = new HashMap<>();
-    // We set this header per GitHub guidelines.
-    headers.put("Accept", "application/vnd.github.v3+json");
-    // Add authorization token to all requests.
-    // Assuming personal access token available in the environment.
-    headers.put("Authorization", "token " + API_TOKEN);
-
-    request = playwright.request().newContext(new APIRequest.NewContextOptions()
-      // All requests we send go to this API endpoint.
-      .setBaseURL("https://api.github.com")
-      .setExtraHTTPHeaders(headers));
-  }
-
-  @BeforeAll
-  void beforeAll() {
-    createPlaywright();
-    createAPIRequestContext();
-  }
-
-  void disposeAPIRequestContext() {
-    if (request != null) {
-      request.dispose();
-      request = null;
+      return new Options().setApiRequestOptions(new APIRequest.NewContextOptions()
+        // All requests we send go to this API endpoint.
+        .setBaseURL("https://api.github.com")
+        .setExtraHTTPHeaders(headers)
+      );
     }
   }
 
-  void closePlaywright() {
-    if (playwright != null) {
-      playwright.close();
-      playwright = null;
-    }
-  }
-
-  @AfterAll
-  void afterAll() {
-    disposeAPIRequestContext();
-    closePlaywright();
-  }
 }
 ```
 
@@ -110,12 +79,11 @@ import com.google.gson.JsonObject;
 import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
-import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.junit.Options;
+import com.microsoft.playwright.junit.OptionsFactory;
+import com.microsoft.playwright.junit.UsePlaywright;
 import com.microsoft.playwright.options.RequestOptions;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -123,19 +91,16 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@UsePlaywright(TestGitHubAPI.CustomOptions.class)
 public class TestGitHubAPI {
   private static final String REPO = "test-repo-2";
   private static final String USER = System.getenv("GITHUB_USER");
   private static final String API_TOKEN = System.getenv("GITHUB_API_TOKEN");
 
-  private Playwright playwright;
-  private APIRequestContext request;
-
   // ...
 
   @Test
-  void shouldCreateBugReport() {
+  void shouldCreateBugReport(APIRequestContext request) {
     Map<String, String> data = new HashMap<>();
     data.put("title", "[Bug] report 1");
     data.put("body", "Bug description");
@@ -162,7 +127,7 @@ public class TestGitHubAPI {
   }
 
   @Test
-  void shouldCreateFeatureRequest() {
+  void shouldCreateFeatureRequest(APIRequestContext request) {
     Map<String, String> data = new HashMap<>();
     data.put("title", "[Feature] request 1");
     data.put("body", "Feature description");
@@ -188,7 +153,6 @@ public class TestGitHubAPI {
     assertEquals("Feature description", issue.get("body").getAsString(), issue.toString());
   }
 }
-
 ```
 
 ### Setup and teardown
@@ -198,32 +162,27 @@ These tests assume that repository exists. You probably want to create a new one
 ```java
   // ...
 
-  void createTestRepository() {
+  static void createTestRepository(APIRequestContext request) {
     APIResponse newRepo = request.post("/user/repos",
       RequestOptions.create().setData(Collections.singletonMap("name", REPO)));
     assertTrue(newRepo.ok(), newRepo.text());
   }
 
   @BeforeAll
-  void beforeAll() {
-    createPlaywright();
-    createAPIRequestContext();
-    createTestRepository();
+  static void beforeAll(APIRequestContext request) {
+    createTestRepository(request);
   }
 
-  void deleteTestRepository() {
+  static void deleteTestRepository(APIRequestContext request) {
     if (request != null) {
       APIResponse deletedRepo = request.delete("/repos/" + USER + "/" + REPO);
       assertTrue(deletedRepo.ok());
     }
   }
-  // ...
 
   @AfterAll
-  void afterAll() {
-    deleteTestRepository();
-    disposeAPIRequestContext();
-    closePlaywright();
+  static void afterAll(APIRequestContext request) {
+    deleteTestRepository(request);
   }
 ```
 
@@ -241,7 +200,9 @@ import com.google.gson.JsonObject;
 import com.microsoft.playwright.APIRequest;
 import com.microsoft.playwright.APIRequestContext;
 import com.microsoft.playwright.APIResponse;
-import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.junit.Options;
+import com.microsoft.playwright.junit.OptionsFactory;
+import com.microsoft.playwright.junit.UsePlaywright;
 import com.microsoft.playwright.options.RequestOptions;
 import org.junit.jupiter.api.*;
 
@@ -251,76 +212,55 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@UsePlaywright(TestGitHubAPI.CustomOptions.class)
 public class TestGitHubAPI {
   private static final String REPO = "test-repo-2";
   private static final String USER = System.getenv("GITHUB_USER");
   private static final String API_TOKEN = System.getenv("GITHUB_API_TOKEN");
 
-  private Playwright playwright;
-  private APIRequestContext request;
+  public static class CustomOptions implements OptionsFactory {
+    @Override
+    public Options getOptions() {
+      Map<String, String> headers = new HashMap<>();
+      // We set this header per GitHub guidelines.
+      headers.put("Accept", "application/vnd.github.v3+json");
+      // Add authorization token to all requests.
+      // Assuming personal access token available in the environment.
+      headers.put("Authorization", "token " + API_TOKEN);
 
-  void createPlaywright() {
-    playwright = Playwright.create();
+      return new Options().setApiRequestOptions(new APIRequest.NewContextOptions()
+        // All requests we send go to this API endpoint.
+        .setBaseURL("https://api.github.com")
+        .setExtraHTTPHeaders(headers)
+      );
+    }
   }
 
-  void createAPIRequestContext() {
-    Map<String, String> headers = new HashMap<>();
-    // We set this header per GitHub guidelines.
-    headers.put("Accept", "application/vnd.github.v3+json");
-    // Add authorization token to all requests.
-    // Assuming personal access token available in the environment.
-    headers.put("Authorization", "token " + API_TOKEN);
-
-    request = playwright.request().newContext(new APIRequest.NewContextOptions()
-      // All requests we send go to this API endpoint.
-      .setBaseURL("https://api.github.com")
-      .setExtraHTTPHeaders(headers));
-  }
-
-  void createTestRepository() {
+  static void createTestRepository(APIRequestContext request) {
     APIResponse newRepo = request.post("/user/repos",
       RequestOptions.create().setData(Collections.singletonMap("name", REPO)));
     assertTrue(newRepo.ok(), newRepo.text());
   }
 
   @BeforeAll
-  void beforeAll() {
-    createPlaywright();
-    createAPIRequestContext();
-    createTestRepository();
+  static void beforeAll(APIRequestContext request) {
+    createTestRepository(request);
   }
 
-  void deleteTestRepository() {
+  static void deleteTestRepository(APIRequestContext request) {
     if (request != null) {
       APIResponse deletedRepo = request.delete("/repos/" + USER + "/" + REPO);
       assertTrue(deletedRepo.ok());
     }
   }
 
-  void disposeAPIRequestContext() {
-    if (request != null) {
-      request.dispose();
-      request = null;
-    }
-  }
-
-  void closePlaywright() {
-    if (playwright != null) {
-      playwright.close();
-      playwright = null;
-    }
-  }
-
   @AfterAll
-  void afterAll() {
-    deleteTestRepository();
-    disposeAPIRequestContext();
-    closePlaywright();
+  static void afterAll(APIRequestContext request) {
+    deleteTestRepository(request);
   }
 
   @Test
-  void shouldCreateBugReport() {
+  void shouldCreateBugReport(APIRequestContext request) {
     Map<String, String> data = new HashMap<>();
     data.put("title", "[Bug] report 1");
     data.put("body", "Bug description");
@@ -347,7 +287,7 @@ public class TestGitHubAPI {
   }
 
   @Test
-  void shouldCreateFeatureRequest() {
+  void shouldCreateFeatureRequest(APIRequestContext request) {
     Map<String, String> data = new HashMap<>();
     data.put("title", "[Feature] request 1");
     data.put("body", "Feature description");
@@ -382,7 +322,7 @@ project to check that it appears at the top of the list. The check is performed 
 
 ```java
 @Test
-void lastCreatedIssueShouldBeFirstInTheList() {
+void lastCreatedIssueShouldBeFirstInTheList(Page page, APIRequestContext request) {
   Map<String, String> data = new HashMap<>();
   data.put("title", "[Feature] request 1");
   data.put("body", "Feature description");
@@ -403,7 +343,7 @@ it was created:
 
 ```java
 @Test
-void lastCreatedIssueShouldBeOnTheServer() {
+void lastCreatedIssueShouldBeOnTheServer(Page page, APIRequestContext request) {
   page.navigate("https://github.com/" + USER + "/" + REPO + "/issues");
   page.locator("text=New Issue").click();
   page.locator("[aria-label='Title']").fill("Bug report 1");

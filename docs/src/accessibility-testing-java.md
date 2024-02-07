@@ -38,22 +38,23 @@ This example demonstrates how to test an entire page for automatically detectabl
 1. Uses normal JUnit 5 test assertions to verify that there are no violations in the returned scan results
 
 ```java
+package org.example;
+
 import com.deque.html.axecore.playwright.*; // 1
-import com.deque.html.axecore.utilities.axeresults.*;
+import com.deque.html.axecore.results.AxeResults;
 
 import org.junit.jupiter.api.*;
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.junit.UsePlaywright;
+
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@UsePlaywright
 public class HomepageTests {
   @Test // 2
-  void shouldNotHaveAutomaticallyDetectableAccessibilityIssues() throws Exception {
-    Playwright playwright = Playwright.create();
-    Browser browser = playwright.chromium().launch();
-    BrowserContext context = browser.newContext();
-    Page page = context.newPage();
-
+  void shouldNotHaveAutomaticallyDetectableAccessibilityIssues(Page page) throws Exception {
     page.navigate("https://your-site.com/"); // 3
 
     AxeResults accessibilityScanResults = new AxeBuilder(page).analyze(); // 4
@@ -73,7 +74,7 @@ For example, you can use [`AxeBuilder.include()`](https://github.com/dequelabs/a
 
 ```java
 @Test
-void navigationMenuFlyoutShouldNotHaveAutomaticallyDetectableAccessibilityViolations() throws Exception {
+void navigationMenuFlyoutShouldNotHaveAutomaticallyDetectableAccessibilityViolations(Page page) throws Exception {
   page.navigate("https://your-site.com/");
 
   page.locator("button[aria-label=\"Navigation Menu\"]").click();
@@ -161,7 +162,7 @@ Here is an example of using fingerprints based on only rule IDs and "target" sel
 
 ```java
 @Test
-shouldOnlyHaveAccessibilityViolationsMatchingKnownFingerprints() throws Exception {
+shouldOnlyHaveAccessibilityViolationsMatchingKnownFingerprints(Page page) throws Exception {
   page.navigate("https://your-site.com/");
 
   AxeResults accessibilityScanResults = new AxeBuilder(page).analyze();

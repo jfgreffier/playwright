@@ -17,10 +17,11 @@ test('status becomes submitted', async ({ page }) => {
 ...
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
+@UsePlaywright
 public class TestLocator {
   ...
   @Test
-  void statusBecomesSubmitted() {
+  void statusBecomesSubmitted(Page page) {
     ...
     page.getByRole(AriaRole.BUTTON).click();
     assertThat(page.locator(".status")).hasText("Submitted");
