@@ -15,8 +15,7 @@ isolated between the tests.
 
 ## JUnit
 
-In [JUnit](https://junit.org/junit5/), you can initialize [Playwright] and [Browser] in [@BeforeAll](https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupiter/api/BeforeAll.html) method and
-destroy them in [@AfterAll](https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupiter/api/AfterAll.html). In the example below, all three test methods use the same
+In [JUnit](https://junit.org/junit5/), you can use Playwright [fixtures](./test-runners.md#fixtures) to automatically initialize [Playwright], [Browser], [BrowserContext] or [Page]. In the example below, all three test methods use the same
 [Browser]. Each test uses its own [BrowserContext] and [Page].
 
 ```java
@@ -58,6 +57,35 @@ public class TestExample {
 }
 ```
 
+### Fixtures
+
+You should add JUnit annotation `@UsePlaywright` to your test classes to use fixtures. Test fixtures are used to establish environment for each test, giving the test everything it needs and nothing else.
+
+```java
+@UsePlaywright
+public class TestExample {
+
+  @Test
+  void basicTest(Page page) {
+    page.navigate("https://playwright.dev/");
+
+    assertThat(page).hasTitle(Pattern.compile("Playwright"));
+  }
+}
+```
+
+The `Page page` argument tells JUnit to setup the `page` fixture and provide it to your test method.
+
+Here is a list of the pre-defined fixtures:
+
+|Fixture       |Type               |Description                      |
+|:-------------|:------------------|:--------------------------------|
+|page          |[Page]             |Isolated page for this test run.|
+|browserContext|[BrowserContext]   |Isolated context for this test run. The `page` fixture belongs to this context as well.|
+|browser       |[Browser]          |Browsers are shared across tests to optimize resources.|
+|playwright    |[Playwright]       |Playwright instance is shared between tests.|
+|request       |[APIRequestContext]|Isolated APIRequestContext for this test run. Learn how to do [API testing](./api-testing).|
+
 ### Running Tests in Parallel
 
 By default JUnit will run all tests sequentially on a single thread. Since JUnit 5.3 you can change this behavior to run tests in parallel
@@ -68,8 +96,7 @@ instance per thread and use it on that thread exclusively. Here is an example ho
 Use [`@TestInstance(TestInstance.Lifecycle.PER_CLASS)`](https://junit.org/junit5/docs/current/api/org.junit.jupiter.api/org/junit/jupiter/api/TestInstance.html)
 annotation to make JUnit create one instance of a class for all test methods within that class (by default each JUnit will create a new instance of the class
 for each test method). Store [Playwright] and [Browser] objects in instance fields. They will be shared between tests. Each instance of the class will use its
-own copy of Playwright.
-
+own copy of Playwright. This is done automatically if you use the `@UsePlaywright` JUnit annotation.
 
 ```java
 @UsePlaywright

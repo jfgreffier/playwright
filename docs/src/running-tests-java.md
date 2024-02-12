@@ -9,7 +9,7 @@ Playwright tests can be run in a variety of ways. We recommend hooking it up to 
 
 You can run a single test, a set of tests or all tests. Tests can be run on one browser or multiple browsers. By default tests are run in a headless manner meaning no browser window will be opened while running the tests and results will be seen in the terminal. If you prefer, you can run your tests in headed mode by using the `launch(new BrowserType.LaunchOptions().setHeadless(false))` option.
 
-In [JUnit](https://junit.org/junit5/), you can use Playwright fixtures to automatically initialize [Playwright], [Browser], [BrowserContext] or [Page]. In the example below, all three test methods use the same
+In [JUnit](https://junit.org/junit5/), you can use Playwright [fixtures](./test-runners.md#fixtures) to automatically initialize [Playwright], [Browser], [BrowserContext] or [Page]. In the example below, all three test methods use the same
 [Browser]. Each test uses its own [BrowserContext] and [Page].
 
 ```java
