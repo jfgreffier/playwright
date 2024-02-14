@@ -86,6 +86,43 @@ Here is a list of the pre-defined fixtures:
 |playwright    |[Playwright]       |Playwright instance is shared between tests.|
 |request       |[APIRequestContext]|Isolated APIRequestContext for this test run. Learn how to do [API testing](./api-testing).|
 
+### Customizing options
+
+To customize fixture options, you should implement an `OptionsFactory` and specify the class in the `@UsePlaywright()` annotation.
+
+You can easily override launch options for [`method: BrowserType.launch`], or context options for [`method: Browser.newContext`] and [`method: APIRequest.newContext`]. See the following example:
+
+```java
+import com.microsoft.playwright.junit.Options;
+import com.microsoft.playwright.junit.OptionsFactory;
+import com.microsoft.playwright.junit.UsePlaywright;
+
+@UsePlaywright(MyTest.CustomOptions.class)
+public class MyTest {
+
+  public static class CustomOptions implements OptionsFactory {
+    @Override
+    public Options getOptions() {
+      return new Options()
+          .setHeadless(false)
+          .setContextOption(new Browser.NewContextOptions()
+              .setBaseURL("https://github.com"))
+          .setApiRequestOptions(new APIRequest.NewContextOptions()
+              .setBaseURL("https://playwright.dev"));
+    }
+  }
+
+  @Test
+  public void testWithCustomOptions(Page page, APIRequestContext request) {
+    page.navigate("/");
+    assertThat(page).hasURL(Pattern.compile("github"));
+
+    APIResponse response = request.get("/");
+    assertTrue(response.text().contains("Playwright"));
+  }
+}
+```
+
 ### Running Tests in Parallel
 
 By default JUnit will run all tests sequentially on a single thread. Since JUnit 5.3 you can change this behavior to run tests in parallel
